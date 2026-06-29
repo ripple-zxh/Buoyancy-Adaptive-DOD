@@ -1,4 +1,4 @@
-```markdown id="n2ljmn"
+
 # 🌀 Buoyancy-Adaptive DOD Surrogate for Rod-Bundle Transients
 
 This repository accompanies the manuscript:
@@ -149,4 +149,3 @@ The citation information will be updated after publication.
 The released source code will be distributed under the MIT License.
 
 Large CFD files, geometry files, mesh files, and third-party benchmark data are not covered by the source-code license and may be subject to separate sharing conditions.
-```
