@@ -1,1 +1,2 @@
 # Buoyancy-Adaptive-DOD-Surrogate-for-Transient-Rod-Bundle-Thermal-Hydraulics
+The relevant code—including the DOD algorithm implementation, alignment procedures, and ablation studies comparing DOD with POD—will be made available after the paper is published. Due to memory constraints, the geometry and mesh files cannot be provided directly here; please contact me via email or GitHub to obtain them.
