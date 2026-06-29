@@ -1,117 +1,138 @@
-```markdown
-# Buoyancy-Adaptive DOD Surrogate for Transient Rod-Bundle Thermal-Hydraulics
+```markdown id="n2ljmn"
+# 🌀 Buoyancy-Adaptive DOD Surrogate for Rod-Bundle Transients
 
 This repository accompanies the manuscript:
 
 **A Buoyancy-Adaptive Reduced-Order Surrogate for Heated Rod-Bundle Transients Using Gauge-Consistent Deep Orthogonal Decomposition**
 
-The repository is associated with a reduced-order surrogate framework for heated rod-bundle transient thermal-hydraulics. The work focuses on how to reconstruct three-dimensional velocity and temperature fields during heated flow transients when buoyancy modifies the transverse secondary-flow structures.
+In plain words: this project is about making CFD-informed rod-bundle thermal-hydraulic fields much faster to reconstruct, especially when heating and buoyancy start to mess with the transverse flow structures.
+
+The source code will be released after the paper is published.
 
 ---
 
-## 1. Problem addressed
+## What is this repo about?
 
-Heated rod-bundle transients involve coupled changes in flow rate, temperature, and buoyancy-driven secondary motion. Under reduced-flow or laterally skewed heating conditions, the flow can shift from nearly forced convection toward mixed convection. In this regime, the transverse velocity field does not only change in magnitude; its spatial structure, location, and topology may also reorganize with the operating condition.
+Heated rod-bundle flow is not just “flow goes up, temperature goes up”.
 
-This creates a difficulty for conventional reduced-order models based on a single fixed global basis, such as standard Proper Orthogonal Decomposition (POD). A global POD basis can efficiently represent nearly linear axial-flow responses, but it may become inefficient for buoyancy-sensitive transverse structures that move or reorganize across the parameter space.
+When the flow rate drops or the heating becomes laterally skewed, buoyancy starts to matter. The transverse secondary flow may change its strength, move to another region, or even reorganize its topology. That is exactly the kind of behavior that a single fixed POD basis does not like.
 
-The central problem addressed in this work is therefore:
+So this work asks a simple question:
 
-> How can a reduced-order surrogate reconstruct velocity and temperature fields in heated rod-bundle transients while adapting to buoyancy-induced transverse-flow reorganization?
+> Can we build a reduced-order surrogate that adapts its basis when buoyancy changes the flow structure?
 
----
-
-## 2. Method overview
-
-The proposed framework combines a buoyancy-adaptive reduced-order field surrogate with thermal-hydraulic time-scale separation for transient deployment.
-
-The main components are:
-
-- **Buoyancy-adaptive Deep Orthogonal Decomposition (DOD)**  
-  A parameter-dependent local orthonormal basis is constructed to adapt the reduced basis to the buoyancy state of the operating condition.
-
-- **Gauge-consistent basis alignment**  
-  Since local orthonormal bases are not unique up to rotations and reflections, a Procrustes-based gauge-alignment procedure is used to make the reduced coordinates consistent and suitable for coefficient regression.
-
-- **POD and clustered-POD baselines**  
-  Standard global POD and clustered POD are used as baseline methods to evaluate whether the adaptive basis provides a real advantage over fixed or piecewise fixed reduced bases.
-
-- **Coefficient-regression comparisons**  
-  Reduced coordinates are predicted from operating parameters, allowing the trained surrogate to reconstruct three-dimensional fields at unseen operating states.
-
-- **Thermal-lag correction for transient queries**  
-  A residence-time-based thermal-lag model is used to account for the finite transport time of coolant through the heated bundle. This enables a steady-trained temperature surrogate to be queried during heated transients.
-
-- **Quasi-steady hydraulic closure**  
-  For the smoothly varying flow ramps considered in the manuscript, the hydraulic response is treated quasi-steadily and coupled to the system-level response through a pressure-drop closure.
+The answer explored in the paper is: yes, by using a buoyancy-adaptive Deep Orthogonal Decomposition (DOD) basis with gauge-consistent coordinates.
 
 ---
 
-## 3. What the surrogate solves
+## Why not just use POD?
 
-The surrogate is designed to reconstruct the following fields for heated rod-bundle operating conditions:
+POD is great when the dominant structures stay more or less in the same place.
 
-- transverse velocity component \(U_x\);
-- transverse velocity component \(U_y\);
-- axial velocity component \(U_z\);
-- temperature field \(T\).
+For the axial velocity field, that is mostly fine.  
+For the temperature field, it also works quite well in this case.  
+But for the transverse velocity components, buoyancy can reshape the secondary flow. Then a fixed global basis has to work harder, because it is trying to describe moving or reorganizing structures using the same modes everywhere.
 
-Compared with a global POD using the same coefficient mapper, the buoyancy-adaptive DOD surrogate improves the reconstruction of the transverse velocity components, where buoyancy-induced flow reorganization is most important. The axial velocity and temperature fields are reconstructed with comparable accuracy by both bases, indicating that the adaptive basis is specifically useful for the nonlinear transverse-flow structures rather than being an indiscriminate improvement across all fields.
+That is where DOD comes in.
 
-The repository will include scripts for reproducing the main analyses reported in the manuscript, including:
+Instead of using one fixed global basis, the DOD surrogate builds a local orthonormal basis that changes with the buoyancy state. In this work, the basis is driven by buoyancy-related descriptors, so the surrogate can adapt when the flow moves from forced convection toward mixed convection.
 
-- end-to-end reconstruction-error comparison between DOD and POD;
+---
+
+## What does the method do?
+
+The surrogate reconstructs:
+
+- transverse velocity component `Ux`;
+- transverse velocity component `Uy`;
+- axial velocity component `Uz`;
+- temperature field `T`.
+
+The workflow is roughly:
+
+1. Generate steady CFD snapshots for heated rod-bundle operating points.
+2. Compress the high-dimensional fields into reduced spaces.
+3. Build a buoyancy-adaptive DOD basis for field reconstruction.
+4. Align the local bases with a Procrustes-based gauge-consistency step.
+5. Predict reduced coordinates using operating parameters.
+6. Query the surrogate during heated flow transients.
+7. Correct the temperature query using a residence-time-based thermal lag.
+8. Use a quasi-steady hydraulic closure for the slowly varying flow ramps considered in the paper.
+
+So the model is not trying to replace CFD in general. It is trying to carry useful CFD-resolved information into a fast surrogate that can be used in transient digital-twin-style calculations.
+
+---
+
+## What problem does it actually solve?
+
+The main target is the buoyancy-sensitive transverse flow.
+
+Compared with a global POD using the same coefficient mapper, the DOD surrogate improves the reconstruction of the transverse velocity components. The improvement is specific: it shows up where the flow structures reorganize with buoyancy.
+
+This is also the main message of the paper:
+
+> Adaptive bases are not automatically better for every field.  
+> They are useful when the dominant structures move, rotate, split, or change topology with the operating condition.
+
+In this rod-bundle case, that means the transverse secondary flow benefits most from the buoyancy-adaptive basis, while the axial velocity and temperature fields are already well handled by simpler bases.
+
+---
+
+## What will be included?
+
+After publication, this repository will provide the implementation used in the paper, including:
+
+- buoyancy-adaptive Deep Orthogonal Decomposition (DOD);
+- gauge alignment and Procrustes-based basis-consistency procedures;
+- global POD baseline;
+- clustered-POD baseline;
+- coefficient-regression comparison scripts;
+- DOD/POD ablation studies;
+- reconstruction-error analysis;
 - buoyancy-band error decomposition;
 - subspace/oracle-error comparison;
-- modal-cost comparison between DOD, global POD, and clustered POD;
-- coefficient-regression ablation studies;
-- post-processing scripts for the main figures and tables.
+- modal-cost comparison;
+- scripts for generating the main figures and tables.
+
+At the moment, this repository is a public placeholder for the manuscript.
 
 ---
 
-## 4. Scientific significance
+## What is not included?
 
-This work is intended to support the development of real-time rod-bundle thermal-hydraulic digital twins. In such applications, a system-level solver requires fast scalar closure quantities, such as pressure drop, while local thermal-hydraulic interpretation requires access to three-dimensional velocity and temperature fields.
+The geometry, mesh, and CFD snapshot files are large, so they are not hosted directly in this GitHub repository.
 
-The framework separates these two requirements:
+These files may be made available upon reasonable request, subject to storage, transfer, and sharing constraints. Please contact the author through GitHub or by email if you need access to the large files required for full reproduction.
 
-- the **system path** provides the hydraulic response needed for system-level momentum closure;
-- the **field-reconstruction path** provides CFD-informed three-dimensional velocity and temperature fields for local-state awareness and physical interpretation.
-
-This split-path structure allows high-fidelity rod-bundle thermal-hydraulic information to be carried into real-time-oriented transient analysis without forcing the system solver to evolve high-dimensional CFD fields directly.
-
-The main methodological message is that a parameter-dependent reduced basis is most useful when the dominant flow structures change with the operating state. In the present problem, this occurs primarily in the buoyancy-sensitive transverse secondary flow.
+Third-party benchmark data, including the publicly documented PNL rod-bundle experimental references, remain subject to their original sources and citation requirements.
 
 ---
 
-## 5. Repository status
+## Why this matters
 
-The source code will be released after publication of the paper.
+Running CFD for every transient query is expensive.  
+System codes are fast, but they do not resolve the three-dimensional local flow structures inside a rod bundle.  
+A reduced-order surrogate sits somewhere in between.
 
-The planned release will include:
+The goal here is to let a system-level model keep its fast scalar closure path, while still giving access to local CFD-informed velocity and temperature fields for interpretation, monitoring, and digital-twin-style analysis.
 
-- implementation of the buoyancy-adaptive DOD reduced-order model;
-- gauge-alignment and Procrustes-based basis-consistency procedures;
-- POD and clustered-POD baseline implementations;
-- coefficient-regression comparison scripts;
-- reconstruction-error and modal-cost analysis scripts;
-- figure-generation and post-processing utilities for the main reproducibility results.
+Think of it as:
 
-At the current stage, this repository serves as a public placeholder associated with the manuscript.
-
----
-
-## 6. Data availability
-
-The geometry, mesh, and CFD snapshot files used in the manuscript are large and are therefore not hosted directly in this GitHub repository.
-
-After publication, the released code will provide the procedures needed to reproduce the reduced-order modeling workflow when the required data are available. Large geometry, mesh, and CFD snapshot files may be made available from the corresponding author upon reasonable request, subject to storage, transfer, and sharing constraints.
-
-Third-party benchmark data, including publicly documented PNL rod-bundle experimental references, remain subject to their original data sources and citation requirements.
+> Do not run CFD every time.  
+> Do not throw away the CFD physics either.  
+> Compress it, adapt it, and query it fast.
 
 ---
 
-## 7. Citation
+## Current status
+
+The paper is currently under submission/preparation.
+
+The code will be released after publication to keep the public repository consistent with the final accepted version of the manuscript.
+
+---
+
+## Citation
 
 If you use this repository or build on this work, please cite the associated manuscript:
 
@@ -123,7 +144,7 @@ The citation information will be updated after publication.
 
 ---
 
-## 8. License
+## License
 
 The released source code will be distributed under the MIT License.
 
