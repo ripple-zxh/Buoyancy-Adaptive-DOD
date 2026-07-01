@@ -143,6 +143,9 @@ If you use this repository or build on this work, please cite the associated man
 The citation information will be updated after publication.
 
 ---
+## appendix
+
+During my research, countless open-source experimental data and code have inspired me. I will do my best to contribute to the development of the community and the development of reduced-order models. I am researching how to upload the geometric model to a cloud drive, but it will take some time.
 
 ## License
 
