@@ -49,22 +49,13 @@ First, the volume-weighted CFD snapshots are compressed into a larger **ambient 
 
 DOD then learns a lower-dimensional, parameter-dependent local subspace inside this ambient space.
 
-For a given parameter state \(\mu\), a neural network predicts a perturbation of a reference basis \(V_0\):
+For a given parameter state `mu`, a neural network predicts a perturbation of a reference basis `V0`:
 
-\[
-V_0 + \Delta V(\mu).
-\]
+`V0 + DeltaV(mu)`
 
 A reduced QR decomposition is then used to construct an orthonormal local basis:
 
-\[
-V_{\mathrm{raw}}(\mu)
-=
-\operatorname{qf}
-\left(
-V_0+\Delta V(\mu)
-\right).
-\]
+`V_raw(mu) = qf[V0 + DeltaV(mu)]`
 
 Unlike a fixed POD basis, the resulting DOD basis therefore changes with the operating condition.
 
@@ -88,55 +79,39 @@ Reduced coordinates are then computed using the aligned local bases, producing *
 
 ## Buoyancy-aware features
 
-The operating condition is represented by
+The operating condition is represented by:
 
-\[
-(\dot m, Ri, \alpha),
-\]
+`(mdot, Ri, alpha)`
 
 where:
 
-- \(\dot m\) is the mass-flow-related operating parameter;
-- \(Ri\) characterizes the relative importance of buoyancy;
-- \(\alpha\) represents the lateral heating-asymmetry parameter used in this study.
+- `mdot` is the mass-flow-related operating parameter;
+- `Ri` characterizes the relative importance of buoyancy;
+- `alpha` represents the lateral heating-asymmetry parameter used in this study.
 
-For basis adaptation, the implementation uses
+For basis adaptation, the implementation uses:
 
-\[
-\log_{10}(Ri)
-\]
+`log10(Ri)`
 
-together with an effective heating-asymmetry feature
+together with an effective heating-asymmetry feature:
 
-\[
-\alpha_{\mathrm{eff}}
-=
-\alpha
-\frac{Ri}
-{Ri+Ri_{\mathrm{median}}}.
-\]
+`alpha_eff = alpha * Ri / (Ri + Ri_median)`
 
-As \(Ri\) becomes small,
+As `Ri` becomes small:
 
-\[
-\alpha_{\mathrm{eff}}\rightarrow 0,
-\]
+`alpha_eff -> 0`
 
 so the influence of lateral heating asymmetry on basis adaptation is naturally suppressed in the low-buoyancy regime.
 
-As buoyancy becomes more important, the influence of \(\alpha\) on the local basis is progressively restored.
+As buoyancy becomes more important, the influence of `alpha` on the local basis is progressively restored.
 
-The DOD basis therefore uses
+The DOD basis therefore uses:
 
-\[
-(\log_{10}Ri,\alpha_{\mathrm{eff}})
-\]
+`(log10(Ri), alpha_eff)`
 
-as its input features, while the coefficient mapper uses
+as its input features, while the coefficient mapper uses:
 
-\[
-(\dot m,\log_{10}Ri,\alpha_{\mathrm{eff}})
-\]
+`(mdot, log10(Ri), alpha_eff)`
 
 to predict the gauge-consistent reduced coordinates.
 
@@ -147,7 +122,7 @@ The core training procedure is:
 1. Apply cell-volume weighting to the CFD snapshots.
 2. Compute an ambient POD representation.
 3. Convert the high-dimensional CFD fields into ambient POD coefficients.
-4. Construct buoyancy-aware features from \((\dot m,Ri,\alpha)\).
+4. Construct buoyancy-aware features from `(mdot, Ri, alpha)`.
 5. Standardize the input features.
 6. Train the parameter-dependent DOD basis.
 7. Enforce local basis orthonormality using reduced QR decomposition.
@@ -166,36 +141,34 @@ The current implementation uses:
 
 ## Inference and field reconstruction
 
-For a new operating condition
+For a new operating condition `(mdot, Ri, alpha)`, the inference pipeline is:
 
-\[
-(\dot m,Ri,\alpha),
-\]
+```text
+Operating parameters
+        |
+        v
+Buoyancy-aware features
+        |
+        v
+Parameter-dependent DOD basis
+        |
+        v
+Gauge alignment
+        |
+        v
+Reduced-coordinate prediction
+        |
+        v
+Ambient POD coefficients
+        |
+        v
+Weighted field reconstruction
+        |
+        v
+Physical CFD-informed field
+```
 
-the inference pipeline is
-
-\[
-\text{operating parameters}
-\rightarrow
-\text{buoyancy-aware features}
-\rightarrow
-\text{parameter-dependent DOD basis}
-\rightarrow
-\text{gauge alignment}
-\]
-
-\[
-\rightarrow
-\text{reduced-coordinate prediction}
-\rightarrow
-\text{ambient POD coefficients}
-\rightarrow
-\text{weighted field reconstruction}
-\rightarrow
-\text{physical CFD-informed field}.
-\]
-
-Once the offline CFD data have been generated and the DOD surrogate has been trained, spatial fields at new operating conditions can therefore be reconstructed without rerunning CFD.
+Once the offline CFD data have been generated and the DOD surrogate has been trained, spatial fields at new operating conditions can be reconstructed without rerunning CFD.
 
 ## Code structure
 
@@ -218,8 +191,8 @@ Implements the core DOD formulation, including:
 
 Implements the parameter-feature transformations, including:
 
-- \(\log_{10}(Ri)\);
-- \(\alpha_{\mathrm{eff}}\);
+- `log10(Ri)`;
+- `alpha_eff`;
 - basis input features;
 - coefficient-mapper input features;
 - feature standardization.
